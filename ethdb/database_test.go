@@ -17,18 +17,24 @@
 package ethdb
 
 import (
-	"os"
-	"path/filepath"
-
-	"github.com/ethereum/go-ethereum/common"
+	"io/ioutil"
+	"testing"
+	"fmt"
 )
 
 func newDb() *LDBDatabase {
-	file := filepath.Join("/", "tmp", "ldbtesttmpfile")
-	if common.FileExist(file) {
-		os.RemoveAll(file)
-	}
-	db, _ := NewLDBDatabase(file, 0, 0)
-
+	tmpfile, _ := ioutil.TempFile("", "ldbtesttmpfile")
+	db, _ := NewLDBDatabase(tmpfile.Name(), 0, 0)
 	return db
+}
+
+func TestPath(t *testing.T) {
+	tmpfile, _ := ioutil.TempFile("", "ldbtesttmpfile")
+	fmt.Println(tmpfile.Name())
+	db, _ := NewLDBDatabase(tmpfile.Name(), 0, 0)
+	dbPath := db.Path()
+	exp := tmpfile.Name()
+	if dbPath != exp {
+		t.Errorf("expected %x got %x", exp, dbPath)
+	}
 }
