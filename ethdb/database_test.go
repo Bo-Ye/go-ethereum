@@ -19,21 +19,14 @@ package ethdb
 import (
 	"io/ioutil"
 	"testing"
-	"fmt"
 )
 
-func newDb() *LDBDatabase {
-	tmpfile, _ := ioutil.TempFile("", "ldbtesttmpfile")
-	db, _ := NewLDBDatabase(tmpfile.Name(), 0, 0)
-	return db
-}
-
 func TestPath(t *testing.T) {
-	tmpfile, _ := ioutil.TempFile("", "ldbtesttmpfile")
-	fmt.Println(tmpfile.Name())
-	db, _ := NewLDBDatabase(tmpfile.Name(), 0, 0)
+	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
+	fileName := tmpDir + "ldbtesttmpfile"
+	db, _ := NewLDBDatabase(fileName, 0, 0)
 	dbPath := db.Path()
-	exp := tmpfile.Name()
+	exp := fileName
 	if dbPath != exp {
 		t.Errorf("expected %x got %x", exp, dbPath)
 	}
