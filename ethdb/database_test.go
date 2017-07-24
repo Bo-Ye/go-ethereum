@@ -31,3 +31,16 @@ func TestPath(t *testing.T) {
 		t.Errorf("expected %x got %x", exp, dbPath)
 	}
 }
+
+func TestPut(t *testing.T){
+	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
+	fileName := tmpDir + "ldbtesttmpfile"
+	db, _ := NewLDBDatabase(fileName, 0, 0)
+	key := []byte{1, 2, 3, 5, 6}
+	value := []byte{'t', 'e', 's', 't', 'i', 'n', 'g'}
+	db.Put(key, value)
+	ret, _ := db.db.Has(key, nil)
+	if ret != true {
+		t.Errorf("expected %x got %x", true, ret)
+	}
+}
