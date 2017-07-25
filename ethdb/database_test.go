@@ -17,6 +17,7 @@
 package ethdb
 
 import (
+	"bytes"
 	"io/ioutil"
 	"testing"
 )
@@ -32,7 +33,7 @@ func TestPath(t *testing.T) {
 	}
 }
 
-func TestPut(t *testing.T){
+func TestPut(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
 	fileName := tmpDir + "ldbtesttmpfile"
 	db, _ := NewLDBDatabase(fileName, 0, 0)
@@ -42,5 +43,18 @@ func TestPut(t *testing.T){
 	ret, _ := db.db.Has(key, nil)
 	if ret != true {
 		t.Errorf("expected %x got %x", true, ret)
+	}
+}
+
+func TestGet(t *testing.T) {
+	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
+	fileName := tmpDir + "ldbtesttmpfile"
+	db, _ := NewLDBDatabase(fileName, 0, 0)
+	key := []byte{1, 2, 3, 5, 6}
+	value := []byte{'t', 'e', 's', 't', 'i', 'n', 'g'}
+	db.db.Put(key, value, nil)
+	ret, _ := db.Get(key)
+	if !bytes.Equal(ret, value) {
+		t.Errorf("expected %x got %x", value, ret)
 	}
 }
