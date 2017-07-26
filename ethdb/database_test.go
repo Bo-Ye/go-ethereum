@@ -17,24 +17,44 @@
 package ethdb
 
 import (
+	"bytes"
 	"io/ioutil"
 	"testing"
-	"fmt"
 )
 
-func newDb() *LDBDatabase {
-	tmpfile, _ := ioutil.TempFile("", "ldbtesttmpfile")
-	db, _ := NewLDBDatabase(tmpfile.Name(), 0, 0)
-	return db
-}
-
 func TestPath(t *testing.T) {
-	tmpfile, _ := ioutil.TempFile("", "ldbtesttmpfile")
-	fmt.Println(tmpfile.Name())
-	db, _ := NewLDBDatabase(tmpfile.Name(), 0, 0)
+	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
+	fileName := tmpDir + "ldbtesttmpfile"
+	db, _ := NewLDBDatabase(fileName, 0, 0)
 	dbPath := db.Path()
-	exp := tmpfile.Name()
+	exp := fileName
 	if dbPath != exp {
 		t.Errorf("expected %x got %x", exp, dbPath)
+	}
+}
+
+func TestPut(t *testing.T) {
+	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
+	fileName := tmpDir + "ldbtesttmpfile"
+	db, _ := NewLDBDatabase(fileName, 0, 0)
+	key := []byte{1, 2, 3, 5, 6}
+	value := []byte{'t', 'e', 's', 't', 'i', 'n', 'g'}
+	db.Put(key, value)
+	ret, _ := db.db.Has(key, nil)
+	if ret != true {
+		t.Errorf("expected %x got %x", true, ret)
+	}
+}
+
+func TestGet(t *testing.T) {
+	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
+	fileName := tmpDir + "ldbtesttmpfile"
+	db, _ := NewLDBDatabase(fileName, 0, 0)
+	key := []byte{1, 2, 3, 5, 6}
+	value := []byte{'t', 'e', 's', 't', 'i', 'n', 'g'}
+	db.db.Put(key, value, nil)
+	ret, _ := db.Get(key)
+	if !bytes.Equal(ret, value) {
+		t.Errorf("expected %x got %x", value, ret)
 	}
 }
