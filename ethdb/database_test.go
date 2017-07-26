@@ -20,14 +20,25 @@ import (
 	"bytes"
 	"io/ioutil"
 	"testing"
+	"fmt"
+	"path/filepath"
+	"os"
+)
+
+var(
+	key = []byte("15da97c42b7ed2e1c0c8dab6a6d7e3d9dc0a75580bbc4f1f29c33996d1415dcc")
+	value = []byte("Hello world")
 )
 
 func TestPath(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
-	fileName := tmpDir + "ldbtesttmpfile"
-	db, _ := NewLDBDatabase(fileName, 0, 0)
+	defer os.RemoveAll(tmpDir)
+	file := filepath.Join(tmpDir, "ldbtesttmpfile")
+	fmt.Println(tmpDir)
+	db, _ := NewLDBDatabase(file, 0, 0)
 	dbPath := db.Path()
-	exp := fileName
+	exp := file
+	fmt.Println(file)
 	if dbPath != exp {
 		t.Errorf("expected %x got %x", exp, dbPath)
 	}
@@ -35,10 +46,9 @@ func TestPath(t *testing.T) {
 
 func TestPut(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
-	fileName := tmpDir + "ldbtesttmpfile"
-	db, _ := NewLDBDatabase(fileName, 0, 0)
-	key := []byte{1, 2, 3, 5, 6}
-	value := []byte{'t', 'e', 's', 't', 'i', 'n', 'g'}
+	defer os.RemoveAll(tmpDir)
+	file := filepath.Join(tmpDir, "ldbtesttmpfile")
+	db, _ := NewLDBDatabase(file, 0, 0)
 	db.Put(key, value)
 	ret, _ := db.db.Has(key, nil)
 	if ret != true {
@@ -48,13 +58,25 @@ func TestPut(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
-	fileName := tmpDir + "ldbtesttmpfile"
-	db, _ := NewLDBDatabase(fileName, 0, 0)
-	key := []byte{1, 2, 3, 5, 6}
-	value := []byte{'t', 'e', 's', 't', 'i', 'n', 'g'}
+	defer os.RemoveAll(tmpDir)
+	file := filepath.Join(tmpDir, "ldbtesttmpfile")
+	db, _ := NewLDBDatabase(file, 0, 0)
 	db.db.Put(key, value, nil)
 	ret, _ := db.Get(key)
 	if !bytes.Equal(ret, value) {
 		t.Errorf("expected %x got %x", value, ret)
+	}
+}
+
+func TestDelete(t *testing.T) {
+	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
+	defer os.RemoveAll(tmpDir)
+	file := filepath.Join(tmpDir, "ldbtesttmpfile")
+	db, _ := NewLDBDatabase(file, 0, 0)
+	db.db.Put(key, value, nil)
+	db.Delete(key)
+	ret, _ := db.db.Has(key, nil)
+	if ret != false {
+		t.Errorf("expected %x got %x", true, ret)
 	}
 }
