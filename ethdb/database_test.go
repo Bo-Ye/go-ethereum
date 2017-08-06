@@ -19,64 +19,72 @@ package ethdb
 import (
 	"bytes"
 	"io/ioutil"
-	"testing"
-	"fmt"
-	"path/filepath"
 	"os"
+	"testing"
 )
 
-var(
-	key = []byte("15da97c42b7ed2e1c0c8dab6a6d7e3d9dc0a75580bbc4f1f29c33996d1415dcc")
-	value = []byte("Hello world")
+var (
+	key   = []byte("key-abc")
+	value = []byte("value-bcd")
 )
 
-func TestPath(t *testing.T) {
+//test LDBDatabase
+func TestLDBDatabase(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
 	defer os.RemoveAll(tmpDir)
-	file := filepath.Join(tmpDir, "ldbtesttmpfile")
-	fmt.Println(tmpDir)
-	db, _ := NewLDBDatabase(file, 0, 0)
+	db, _ := NewLDBDatabase(tmpDir, 0, 0)
+	//test Path
 	dbPath := db.Path()
-	exp := file
-	fmt.Println(file)
-	if dbPath != exp {
-		t.Errorf("expected %x got %x", exp, dbPath)
+	if dbPath != tmpDir {
+		t.Errorf("expected %s got %s", tmpDir, dbPath)
 	}
-}
-
-func TestPut(t *testing.T) {
-	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
-	defer os.RemoveAll(tmpDir)
-	file := filepath.Join(tmpDir, "ldbtesttmpfile")
-	db, _ := NewLDBDatabase(file, 0, 0)
+	//test Put
 	db.Put(key, value)
-	ret, _ := db.db.Has(key, nil)
-	if ret != true {
-		t.Errorf("expected %x got %x", true, ret)
+	ret1, _ := db.db.Has(key, nil)
+	if ret1 != true {
+		t.Errorf("expected %t got %t", true, ret1)
 	}
-}
-
-func TestGet(t *testing.T) {
-	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
-	defer os.RemoveAll(tmpDir)
-	file := filepath.Join(tmpDir, "ldbtesttmpfile")
-	db, _ := NewLDBDatabase(file, 0, 0)
-	db.db.Put(key, value, nil)
-	ret, _ := db.Get(key)
-	if !bytes.Equal(ret, value) {
-		t.Errorf("expected %x got %x", value, ret)
+	//test Get
+	ret2, _ := db.Get(key)
+	if !bytes.Equal(ret2, value) {
+		t.Errorf("expected %x got %x", value, ret2)
 	}
-}
-
-func TestDelete(t *testing.T) {
-	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
-	defer os.RemoveAll(tmpDir)
-	file := filepath.Join(tmpDir, "ldbtesttmpfile")
-	db, _ := NewLDBDatabase(file, 0, 0)
-	db.db.Put(key, value, nil)
+	//test Delete
 	db.Delete(key)
-	ret, _ := db.db.Has(key, nil)
-	if ret != false {
-		t.Errorf("expected %x got %x", true, ret)
+	ret3, _ := db.db.Has(key, nil)
+	if ret3 {
+		t.Errorf("expected %t got %t", false, ret3)
+	}
+}
+
+func TestLDBDatabaseMeter(t *testing.T) {
+	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
+	defer os.RemoveAll(tmpDir)
+	db, _ := NewLDBDatabase(tmpDir, 0, 0)
+	db.Meter("prefix")
+}
+
+//////test table
+func TestTable(t *testing.T) {
+	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
+	defer os.RemoveAll(tmpDir)
+	db, _ := NewLDBDatabase(tmpDir, 0, 0)
+	table := NewTable(db, "prefix-")
+	//test put
+	table.Put(key, value)
+	ret1, _ := db.db.Has(append([]byte("prefix-"), key...), nil)
+	if !ret1 {
+		t.Errorf("expected %t got %t", true, ret1)
+	}
+	//test get
+	ret2, _ := table.Get(key)
+	if !bytes.Equal(ret2, value) {
+		t.Errorf("expected %s got %s", value, ret2)
+	}
+	//test delete
+	table.Delete(key)
+	ret3, _ := db.db.Has(append([]byte("prefix-"), key...), nil)
+	if ret3 {
+		t.Errorf("expected %t got %t", false, ret3)
 	}
 }
