@@ -40,24 +40,24 @@ func TestLDBDatabase(t *testing.T) {
 	//test Path
 	dbPath := db.Path()
 	if dbPath != tmpDir {
-		t.Errorf("expected %s got %s", tmpDir, dbPath)
+		t.Errorf("expected %s, got %s", tmpDir, dbPath)
 	}
 	//test Put
 	db.Put(key1, value1)
 	ret1, _ := db.db.Has(key1, nil)
 	if ret1 != true {
-		t.Errorf("expected %t got %t", true, ret1)
+		t.Errorf("expected %t, got %t", true, ret1)
 	}
 	//test Get
 	ret2, _ := db.Get(key1)
 	if !bytes.Equal(ret2, value1) {
-		t.Errorf("expected %x got %x", value1, ret2)
+		t.Errorf("expected %x, got %x", value1, ret2)
 	}
 	//test Delete
 	db.Delete(key1)
 	ret3, _ := db.db.Has(key1, nil)
 	if ret3 {
-		t.Errorf("expected %t got %t", false, ret3)
+		t.Errorf("expected %t, got %t", false, ret3)
 	}
 }
 
@@ -74,49 +74,81 @@ func TestLDBDatabaseMeter(t *testing.T) {
 	db.Put(key2, value2)
 	ret := db.putTimer.Count()
 	if ret != 2{
-		t.Errorf("putTimer: expected %d got %d", 2, ret)
+		t.Errorf("putTimer: expected %d, got %d", 2, ret)
 	}
 	min := db.putTimer.Min()
 	if min == 0{
-		t.Error("putTimer: expected min time larger than zero got 0")
+		t.Error("putTimer: expected min time larger than zero, got 0")
 	}
 	mean := db.putTimer.Mean()
 	if mean == 0{
-		t.Error("putTimer: expected mean time larger than zero got 0")
+		t.Error("putTimer: expected mean time larger than zero, got 0")
 	}
 	max := db.putTimer.Max()
 	if max == 0{
-		t.Error("putTimer: expected max time larger than zero got 0")
+		t.Error("putTimer: expected max time larger than zero, got 0")
 	}
 	totalBytes := int64(len(value1) + len(value2))
 	ret = db.writeMeter.Count()
 	if totalBytes != ret {
-		t.Errorf("writeMeter: expected %d got %d", totalBytes, ret)
+		t.Errorf("writeMeter: expected %d, got %d", totalBytes, ret)
 	}
-	//test getTimer & missMeter
+	//test getTimer & missMeter & readMeter
 	db.Get(key1)
 	db.Get(key3)
 	ret = db.getTimer.Count()
 	if ret != 2{
-		t.Errorf("getTimer: expected %d got %d", 2, ret)
+		t.Errorf("getTimer: expected %d, got %d", 2, ret)
 	}
 	min = db.getTimer.Min()
 	if min == 0{
-		t.Error("getTimer: expected min time larger than zero got 0")
+		t.Error("getTimer: expected min time larger than zero, got 0")
 	}
 	mean = db.getTimer.Mean()
 	if mean == 0{
-		t.Error("getTimer: expected mean time larger than zero got 0")
+		t.Error("getTimer: expected mean time larger than zero, got 0")
 	}
 	max = db.getTimer.Max()
 	if max == 0{
-		t.Error("getTimer: expected max time larger than zero got 0")
+		t.Error("getTimer: expected max time larger than zero, got 0")
 	}
 	ret = db.missMeter.Count()
 	if ret != 1{
 		t.Errorf("missMeter: expected %d got %d", 1, ret)
 	}
+	totalBytes = int64(len(value1))
+	ret = db.readMeter.Count()
+	if totalBytes != ret {
+		t.Errorf("readMeter: expected %d got %d", totalBytes, ret)
+	}
+	//test delTimer
+	db.Delete(key1)
+	db.Delete(key2)
+	ret = db.delTimer.Count()
+	if ret != 2{
+		t.Errorf("delTimer: expected %d got %d", 2, ret)
+	}
+	min = db.delTimer.Min()
+	if min == 0{
+		t.Error("delTimer: expected min time larger than zero, got 0")
+	}
+	mean = db.delTimer.Mean()
+	if mean == 0{
+		t.Error("delTimer: expected mean time larger than zero, got 0")
+	}
+	max = db.delTimer.Max()
+	if max == 0{
+		t.Error("delTimer: expected max time larger than zero, got 0")
+	}
+}
 
+////test Batch
+func TestBatch(t *testing.T){
+	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
+	defer os.RemoveAll(tmpDir)
+	db, _ := NewLDBDatabase(tmpDir, 0, 0)
+	defer db.Close()
+	db.NewBatch()
 }
 
 //////test table
@@ -129,17 +161,17 @@ func TestTable(t *testing.T) {
 	table.Put(key1, value1)
 	ret1, _ := db.db.Has(append([]byte("prefix-"), key1...), nil)
 	if !ret1 {
-		t.Errorf("expected %t got %t", true, ret1)
+		t.Errorf("expected %t, got %t", true, ret1)
 	}
 	//test get
 	ret2, _ := table.Get(key1)
 	if !bytes.Equal(ret2, value1) {
-		t.Errorf("expected %s got %s", value1, ret2)
+		t.Errorf("expected %s, got %s", value1, ret2)
 	}
 	//test delete
 	table.Delete(key1)
 	ret3, _ := db.db.Has(append([]byte("prefix-"), key1...), nil)
 	if ret3 {
-		t.Errorf("expected %t got %t", false, ret3)
+		t.Errorf("expected %t, got %t", false, ret3)
 	}
 }
