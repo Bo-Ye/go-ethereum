@@ -22,7 +22,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	"fmt"
 )
 
 var (
@@ -40,6 +39,7 @@ func TestLDBDatabase(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
 	defer os.RemoveAll(tmpDir)
 	db, _ := NewLDBDatabase(tmpDir, 0, 0)
+	defer db.Close()
 	//test Path
 	dbPath := db.Path()
 	if dbPath != tmpDir {
@@ -54,13 +54,13 @@ func TestLDBDatabase(t *testing.T) {
 	//test Get
 	ret2, _ := db.Get(key1)
 	if !bytes.Equal(ret2, value1) {
-		t.Errorf("expected %x, got %x", value1, ret2)
+		t.Errorf("LDBDatabase Get: expected %s, got %s", value1, ret2)
 	}
 	//test Delete
 	db.Delete(key1)
 	ret3, _ := db.db.Has(key1, nil)
 	if ret3 {
-		t.Errorf("expected %t, got %t", false, ret3)
+		t.Error("LDBDatabase Delete: expected false, got true")
 	}
 }
 
@@ -143,9 +143,6 @@ func TestLDBDatabaseMeter(t *testing.T) {
 	if max == 0 {
 		t.Error("delTimer: expected max time larger than zero, got 0")
 	}
-	fmt.Println(db.compTimeMeter.Count())
-	fmt.Println(db.compReadMeter.Count())
-	fmt.Println(db.compWriteMeter.Count())
 }
 
 ////test Batch
