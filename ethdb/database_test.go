@@ -18,18 +18,21 @@ package ethdb
 
 import (
 	"bytes"
+	"github.com/ethereum/go-ethereum/metrics"
 	"io/ioutil"
 	"os"
 	"testing"
-	"github.com/ethereum/go-ethereum/metrics"
+	"fmt"
 )
 
 var (
-	key1   = []byte("key-aaaaa")
-	value1 = []byte("value-aaaaa")
-	key2 = []byte("key-bbbbb")
-	value2 = []byte("value-bbbbb")
-	key3 = []byte("unknow")
+	key1       = []byte("key-aaaaa")
+	value1     = []byte("value-aaaaa")
+	key2       = []byte("key-bbbbb")
+	value2     = []byte("value-bbbbb")
+	key3       = []byte("key-ccccc")
+	value3     = []byte("value-ccccc")
+	unknownKey = []byte("unknow")
 )
 
 //test LDBDatabase
@@ -40,13 +43,13 @@ func TestLDBDatabase(t *testing.T) {
 	//test Path
 	dbPath := db.Path()
 	if dbPath != tmpDir {
-		t.Errorf("expected %s, got %s", tmpDir, dbPath)
+		t.Errorf("LDBDatabase Path: expected %s, got %s", tmpDir, dbPath)
 	}
 	//test Put
 	db.Put(key1, value1)
 	ret1, _ := db.db.Has(key1, nil)
-	if ret1 != true {
-		t.Errorf("expected %t, got %t", true, ret1)
+	if !ret1{
+		t.Error("LDBDatabase Put: expected true, got false")
 	}
 	//test Get
 	ret2, _ := db.Get(key1)
@@ -73,19 +76,19 @@ func TestLDBDatabaseMeter(t *testing.T) {
 	db.Put(key1, value1)
 	db.Put(key2, value2)
 	ret := db.putTimer.Count()
-	if ret != 2{
+	if ret != 2 {
 		t.Errorf("putTimer: expected %d, got %d", 2, ret)
 	}
 	min := db.putTimer.Min()
-	if min == 0{
+	if min == 0 {
 		t.Error("putTimer: expected min time larger than zero, got 0")
 	}
 	mean := db.putTimer.Mean()
-	if mean == 0{
+	if mean == 0 {
 		t.Error("putTimer: expected mean time larger than zero, got 0")
 	}
 	max := db.putTimer.Max()
-	if max == 0{
+	if max == 0 {
 		t.Error("putTimer: expected max time larger than zero, got 0")
 	}
 	totalBytes := int64(len(value1) + len(value2))
@@ -95,25 +98,25 @@ func TestLDBDatabaseMeter(t *testing.T) {
 	}
 	//test getTimer & missMeter & readMeter
 	db.Get(key1)
-	db.Get(key3)
+	db.Get(unknownKey)
 	ret = db.getTimer.Count()
-	if ret != 2{
+	if ret != 2 {
 		t.Errorf("getTimer: expected %d, got %d", 2, ret)
 	}
 	min = db.getTimer.Min()
-	if min == 0{
+	if min == 0 {
 		t.Error("getTimer: expected min time larger than zero, got 0")
 	}
 	mean = db.getTimer.Mean()
-	if mean == 0{
+	if mean == 0 {
 		t.Error("getTimer: expected mean time larger than zero, got 0")
 	}
 	max = db.getTimer.Max()
-	if max == 0{
+	if max == 0 {
 		t.Error("getTimer: expected max time larger than zero, got 0")
 	}
 	ret = db.missMeter.Count()
-	if ret != 1{
+	if ret != 1 {
 		t.Errorf("missMeter: expected %d got %d", 1, ret)
 	}
 	totalBytes = int64(len(value1))
@@ -125,30 +128,50 @@ func TestLDBDatabaseMeter(t *testing.T) {
 	db.Delete(key1)
 	db.Delete(key2)
 	ret = db.delTimer.Count()
-	if ret != 2{
+	if ret != 2 {
 		t.Errorf("delTimer: expected %d got %d", 2, ret)
 	}
 	min = db.delTimer.Min()
-	if min == 0{
+	if min == 0 {
 		t.Error("delTimer: expected min time larger than zero, got 0")
 	}
 	mean = db.delTimer.Mean()
-	if mean == 0{
+	if mean == 0 {
 		t.Error("delTimer: expected mean time larger than zero, got 0")
 	}
 	max = db.delTimer.Max()
-	if max == 0{
+	if max == 0 {
 		t.Error("delTimer: expected max time larger than zero, got 0")
 	}
+	fmt.Println(db.compTimeMeter.Count())
+	fmt.Println(db.compReadMeter.Count())
+	fmt.Println(db.compWriteMeter.Count())
 }
 
 ////test Batch
-func TestBatch(t *testing.T){
+func TestBatch(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
 	defer os.RemoveAll(tmpDir)
 	db, _ := NewLDBDatabase(tmpDir, 0, 0)
 	defer db.Close()
-	db.NewBatch()
+	//write batch
+	batch := db.NewBatch()
+	batch.Put(key1, value1)
+	batch.Put(key2, value2)
+	batch.Put(key3, value3)
+	batch.Write()
+	ret, _ := db.Get(key1)
+	if !bytes.Equal(ret, value1) {
+		t.Errorf("batch: expected %x, got %x", value1, ret)
+	}
+	ret, _ = db.Get(key2)
+	if !bytes.Equal(ret, value2) {
+		t.Errorf("batch: expected %x, got %x", value2, ret)
+	}
+	ret, _ = db.Get(key3)
+	if !bytes.Equal(ret, value3) {
+		t.Errorf("batch: expected %x, got %x", value3, ret)
+	}
 }
 
 //////test table
@@ -173,5 +196,23 @@ func TestTable(t *testing.T) {
 	ret3, _ := db.db.Has(append([]byte("prefix-"), key1...), nil)
 	if ret3 {
 		t.Errorf("expected %t, got %t", false, ret3)
+	}
+	//test tableBatch
+	tableBatch := table.NewBatch()
+	tableBatch.Put(key1, value1)
+	tableBatch.Put(key2, value2)
+	tableBatch.Put(key3, value3)
+	tableBatch.Write()
+	ret, _ := db.db.Has(append([]byte("prefix-"), key1...), nil)
+	if !ret {
+		t.Error("tableBatch : expected true, got false")
+	}
+	ret, _ = db.db.Has(append([]byte("prefix-"), key2...), nil)
+	if !ret {
+		t.Error("tableBatch: expected true, got false")
+	}
+	ret, _ = db.db.Has(append([]byte("prefix-"), key3...), nil)
+	if !ret {
+		t.Error("tableBatch: expected true, got false")
 	}
 }
