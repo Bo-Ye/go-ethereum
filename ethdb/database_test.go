@@ -48,7 +48,7 @@ func TestLDBDatabase(t *testing.T) {
 	//test Put
 	db.Put(key1, value1)
 	ret1, _ := db.db.Has(key1, nil)
-	if !ret1{
+	if !ret1 {
 		t.Error("LDBDatabase Put: expected true, got false")
 	}
 	//test Get
@@ -159,40 +159,41 @@ func TestBatch(t *testing.T) {
 	batch.Write()
 	ret, _ := db.Get(key1)
 	if !bytes.Equal(ret, value1) {
-		t.Errorf("batch: expected %x, got %x", value1, ret)
+		t.Errorf("batch: expected %s, got %s", value1, ret)
 	}
 	ret, _ = db.Get(key2)
 	if !bytes.Equal(ret, value2) {
-		t.Errorf("batch: expected %x, got %x", value2, ret)
+		t.Errorf("batch: expected %s, got %s", value2, ret)
 	}
 	ret, _ = db.Get(key3)
 	if !bytes.Equal(ret, value3) {
-		t.Errorf("batch: expected %x, got %x", value3, ret)
+		t.Errorf("batch: expected %s, got %s", value3, ret)
 	}
 }
 
-//////test table
+//test table
 func TestTable(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "ldbtesttmpdir")
 	defer os.RemoveAll(tmpDir)
 	db, _ := NewLDBDatabase(tmpDir, 0, 0)
+	defer db.Close()
 	table := NewTable(db, "prefix-")
 	//test put
 	table.Put(key1, value1)
 	ret1, _ := db.db.Has(append([]byte("prefix-"), key1...), nil)
 	if !ret1 {
-		t.Errorf("expected %t, got %t", true, ret1)
+		t.Error("table Put: expected true, got false")
 	}
 	//test get
 	ret2, _ := table.Get(key1)
 	if !bytes.Equal(ret2, value1) {
-		t.Errorf("expected %s, got %s", value1, ret2)
+		t.Errorf("table Get: expected %s, got %s", value1, ret2)
 	}
 	//test delete
 	table.Delete(key1)
 	ret3, _ := db.db.Has(append([]byte("prefix-"), key1...), nil)
 	if ret3 {
-		t.Errorf("expected %t, got %t", false, ret3)
+		t.Error("table Delete: expected false, got true")
 	}
 	//test tableBatch
 	tableBatch := table.NewBatch()
@@ -202,7 +203,7 @@ func TestTable(t *testing.T) {
 	tableBatch.Write()
 	ret, _ := db.db.Has(append([]byte("prefix-"), key1...), nil)
 	if !ret {
-		t.Error("tableBatch : expected true, got false")
+		t.Error("tableBatch: expected true, got false")
 	}
 	ret, _ = db.db.Has(append([]byte("prefix-"), key2...), nil)
 	if !ret {
